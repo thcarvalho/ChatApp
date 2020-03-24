@@ -1,35 +1,38 @@
 const mongoose = require('mongoose');
-const Message = mongoose.model('Message');
+const Chat = mongoose.model('Chat');
+
+const { sendMessage } = require('../services/websocket')
 
 module.exports = {
-  async create(req, res){
+  async create(req, res) {
     try {
-      const message = await Message.create(req.body);
+      const chat = await Chat.findByIdAndUpdate(req.params.id, { $push: { messages: req.body } })
+     
+      sendMessage(chat.users[0].userId, req.body);
+      sendMessage(chat.users[1].userId, req.body);
 
-      const by = req.connectedUsers.find(user => user.user === req.body.by);
-      const to = req.connectedUsers.find(user => user.user === req.body.to);
-
-      console.log(by);
-      console.log(to);
-      
-      req.io.to(to).emit('sendMessage', req.body.by);
-      return res.json(message);
+      return res.json(chat.messages);
     } catch (error) {
-      return res.status(400).send({error})
+      console.log(error);
+      return res.status(400).send({ error });
     }
   },
-  async read(req, res){
-    const messages = await Message.find(req.query);
-    return res.json(messages);
+  async read(req, res) {
+    try {
+      const chat = await Chat.findById(req.params.id)
+      return res.json(chat.messages);
+    } catch (error) {
+      console.log(error);
+    }
   },
-  async delete(req, res){
-    const {id} = req.params
+  async delete(req, res) {
+    const { id } = req.params
     await Message.findByIdAndRemove(id)
-    .then(() => {
-      return res.json({ok: true});
-    })
-    .catch(error => {
-      return res.status(400).send({error})
-    })
+      .then(() => {
+        return res.json({ ok: true });
+      })
+      .catch(error => {
+        return res.status(400).send({ error })
+      })
   }
 }
