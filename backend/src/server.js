@@ -5,17 +5,10 @@ const cors = require('cors')
 const requireDir = require('require-dir')
 
 const server = require('http').Server(app)
-const io = require('socket.io')(server)
 
-const connectedUsers = []
+const {setupWebSocket} = require('./services/websocket')
+setupWebSocket(server);
 
-io.on('connection', socket => {
-  connectedUsers.push({
-    user: socket.handshake.query.user,
-    id: socket.id
-  });
-  console.log(connectedUsers);
-});
 
 requireDir('./models');
 
@@ -30,14 +23,10 @@ mongoose.connect('mongodb://localhost:27017/chat', {
   useFindAndModify: false,
 })
 
-app.use((req,res,next) => {
-  req.io = io
-  req.connectedUsers = connectedUsers
-  return next()
-})
-
 app.use('/', routes.messagesRoutes);
 app.use('/', routes.userRoutes);
 app.use('/', routes.contactRoutes);
+app.use('/', routes.authRoutes);
+app.use('/', routes.chatRoutes);
 
 server.listen(3000);
