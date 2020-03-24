@@ -1,51 +1,113 @@
 /* eslint-disable prettier/prettier */
-import React from 'react';
-import { View, Text, TouchableOpacity, Image, ScrollView } from 'react-native';
-import global from './styles/global';
+import React, { useEffect, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ToastAndroid } from 'react-native';
+import IconMA from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-community/async-storage';
+
 import BackButton from '../components/BackButton';
 import ChatContainer from '../components/ChatContainer';
-import Fab from '../components/Fab';
-import Icon from 'react-native-vector-icons/FontAwesome';
+
+import global from './styles/global';
+
+import socket from "../services/websocket";
+import api from "../services/api";
+
+import getId from '../utils/getId';
 
 export default function Main({ navigation }) {
+  const [chats, setChats] = useState([]);
+  const [id, setId] = useState('');
+
+  useEffect(() => {
+    getId().then(user => setId(user));
+  }, []);
+
+  useEffect(() => {
+    getChats();
+  }, []);
+
+  useEffect(() => {
+    getId()
+      .then(user => {
+        const io = socket(user);
+        io.on('sendMessage', () => getChats());
+      });
+  }, [chats]);
+
+  async function getChats() {
+    try {
+      const user = await getId();
+      const response = await api.get('/chat', {
+        params: {
+          user,
+        },
+
+      });
+
+      setChats(response.data);
+    } catch (error) {
+      console.log(error.response.data);
+    }
+  }
+
+  function logout() {
+    AsyncStorage.removeItem('@userId');
+    navigation.navigate("Login");
+  }
+
+
+
   return (
     <>
       <View style={{ marginTop: 50 }} />
       <ScrollView>
-        <ChatContainer
-          chatData={{
-            contactName: "Joãozinho",
-            lastMessage: "Olá, tudo bem?",
-            avatar: require('../assets/perfil2.jpg'),
-            haveNewMessage: 1,
-          }}
-          onPress={() => navigation.navigate('Chat', { contactName: "Joãozinho" })}
-        />
-        <ChatContainer chatData={{
-          contactName: "Cremildo",
-          lastMessage: "Bora pro rolê?",
-          avatar: require('../assets/perfil1.jpg'),
-        }} />
-        <ChatContainer chatData={{
-          contactName: "Jubileu",
-          lastMessage: "Cadê meu dinheiro?",
-          avatar: require('../assets/perfil4.jpg'),
-          haveNewMessage: 2,
-        }} />
-        <ChatContainer chatData={{
-          contactName: "Téteia",
-          lastMessage: "Oii sumido",
-          avatar: require('../assets/perfil3.jpg'),
-        }} />
+        {
+          chats.map(chat => {
+            if (chat.users[0].userId === id) {
+              return (
+                <ChatContainer
+                  chatData={{
+                    contactName: chat.users[1].username,
+                    lastMessage: chat.messages[chat.messages.length - 1].message,
+                    avatar: require('../assets/perfil2.jpg'),
+                  }}
+                  onPress={() => navigation.navigate('Chat', {
+                    contact: {
+                      username: chat.users[1].username,
+                      userId: chat.users[1].userId,
+                    },
+                    chat,
+                  })}
+                />
+              );
+            } else {
+              return (
+                <ChatContainer
+                  chatData={{
+                    contactName: chat.users[0].username,
+                    lastMessage: chat.messages[chat.messages.length - 1].message,
+                    avatar: require('../assets/perfil2.jpg'),
+                  }}
+                  onPress={() => navigation.navigate('Chat', {
+                    contact: {
+                      username: chat.users[0].username,
+                      userId: chat.users[0].userId,
+                    },
+                    chat,
+                  })}
+                />
+              )
+            }
+          })
+        }
       </ScrollView>
       <View style={global.header}>
-        <BackButton onPress={() => navigation.navigate("Login")} />
+        <BackButton onPress={logout} />
         <Text style={global.headerText}>Conversas</Text>
-        <View />
+        <TouchableOpacity activeOpacity={0.8} onPress={getChats}>
+          <IconMA name="reload" size={25} color="#797979" />
+        </TouchableOpacity>
       </View>
-      {/* <Fab onPress={() => navigation.navigate('AddContact')}>
-        <Icon name="plus" size={22} color="#fff" />
-      </Fab> */}
     </>
   );
 }
