@@ -1,4 +1,5 @@
 /* eslint-disable prettier/prettier */
+import React from "react";
 import { createAppContainer, createStackNavigator } from 'react-navigation';
 
 import Main from './bottom-navigator';
@@ -28,10 +29,10 @@ export default createAppContainer(
     },
     Chat: {
       screen: Chat,
-      navigationOptions: () => ({
+      navigationOptions: ({navigation}) => ({
         headerTransparent: true,
         headerShown: false,
-        headerLeft: BackButton,
+        headerLeft: (<BackButton onPress={() => navigation.navigate('Main')} />),
         headerLeftContainerStyle: {
           paddingLeft: 16,
         },

@@ -5,14 +5,16 @@ import textInputMsg from './styles/text-input-msg';
 
 // import { Container } from './styles';
 
-export default function TextInputMsg() {
+export default function TextInputMsg({ onChangeText, value, onPress }) {
   return (
     <View style={textInputMsg.container}>
       <TextInput
         style={textInputMsg.inputText}
         placeholder="Escreva alguma coisa..."
+        onChangeText={onChangeText}
+        value={value}
       />
-      <TouchableOpacity activeOpacity={0.7} style={textInputMsg.fab}>
+      <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={textInputMsg.fab}>
         <Icon name="send" size={20} color="#ccc" />
       </TouchableOpacity>
     </View>
